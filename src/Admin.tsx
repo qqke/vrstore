@@ -9,6 +9,29 @@ const supabase = publicClient ? createClient(import.meta.env.VITE_SUPABASE_URL, 
 type Row = Record<string, unknown> & { id: string; version: number };
 const show = (v: unknown) => v === null || v === undefined ? '' : Array.isArray(v) ? v.join('|') : String(v);
 
+async function authorizedRows(table: string, storeIds: string[]): Promise<Row[]> {
+  if (!storeIds.length) return [];
+  let request = supabase!.from(table).select('*');
+  if (table === 'stores') request = request.in('id', storeIds);
+  else if (['floors','products'].includes(table)) request = request.in('store_id', storeIds);
+  else {
+    const floors = await supabase!.from('floors').select('id').in('store_id', storeIds);
+    if (floors.error) throw floors.error;
+    const floorIds = floors.data.map(f => f.id);
+    if (!floorIds.length) return [];
+    if (table === 'product_locations') {
+      const shelves = await supabase!.from('shelves').select('id').in('floor_id', floorIds);
+      if (shelves.error) throw shelves.error;
+      if (!shelves.data.length) return [];
+      request = request.in('shelf_id', shelves.data.map(s => s.id));
+    } else request = request.in('floor_id', floorIds);
+  }
+  const result = await request.limit(5000);
+  if (result.error) throw result.error;
+  if (result.data.length === 5000) throw new Error('记录达到首版上限，请分页后维护。');
+  return result.data as Row[];
+}
+
 export default function Admin() {
   const [session, setSession] = useState<Session | null>(null);
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
@@ -31,10 +54,11 @@ export default function Admin() {
     void (async () => {
       setBusy(true);
       try {
-        const [data, auth] = await Promise.all([supabase!.from(table).select('*').limit(5000), supabase!.from('store_admins').select('store_id').eq('user_id', session.user.id)]);
-        if (data.error) throw data.error; if (auth.error) throw auth.error;
+        const auth = await supabase!.from('store_admins').select('store_id').eq('user_id', session.user.id);
+        if (auth.error) throw auth.error;
         const authorized = new Set((auth.data || []).map(r => r.store_id as string));
-        if (!cancelled) { setGrants([...authorized]); setRows((data.data || []).filter(r => !r.store_id || authorized.has(r.store_id)) as Row[]); if (!authorized.size) setMessage('此账号没有门店管理权限，请通过 Dashboard 授权。'); }
+        const data = await authorizedRows(table,[...authorized]);
+        if (!cancelled) { setGrants([...authorized]); setRows(data); if (!authorized.size) setMessage('此账号没有门店管理权限，请通过 Dashboard 授权。'); }
       } catch (e) { if (!cancelled) setMessage(e instanceof Error ? e.message : '加载失败'); }
       finally { if (!cancelled) setBusy(false); }
     })();
@@ -47,9 +71,7 @@ export default function Admin() {
     finally { setBusy(false); }
   }
   async function refreshRows() {
-    const result = await supabase!.from(table).select('*').limit(5000);
-    if (result.error) throw result.error;
-    setRows((result.data || []).filter(r => !r.store_id || grants.includes(r.store_id)) as Row[]);
+    setRows(await authorizedRows(table,grants));
   }
   function edit(row?: Row) {
     setSelected(row); setMessage('');

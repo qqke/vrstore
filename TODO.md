@@ -4,7 +4,7 @@
 
 架构：React + TypeScript + Vite + Tailwind CSS；SVG 2D 地图；Three.js + React Three Fiber + Drei；浏览器直接访问 Supabase Database / Storage；顾客页面部署 GitHub Pages。
 
-试点范围：一家门店、至少两个楼层、30～50 件商品。本清单未勾选项均尚未完成。
+试点范围：一家门店、至少两个楼层、30～50 件商品。勾选仅表示该项已有实现和验证，不代表真实门店采集已经完成；详细证据与剩余条件见 PROGRESS.md。
 
 ## 0. 资料与上线前提
 

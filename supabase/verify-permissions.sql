@@ -41,6 +41,10 @@ begin
   if not exists(select 1 from public.products where id='test-import-1') then raise exception 'Atomic import failed'; end if;
   begin perform public.import_records('products','[{"id":"test-import-2","store_id":"demo","name_zh":"test"},{"id":"test-import-1","store_id":"demo","name_zh":"duplicate"}]'); raise exception 'Duplicate import accepted'; exception when unique_violation then null; end;
   if exists(select 1 from public.products where id='test-import-2') then raise exception 'Failed import left partial records'; end if;
+  begin perform public.update_layout('[{"id":"1f-s2","version":1,"x":8,"z":5,"width":2.1,"depth":3,"rotation":0},{"id":"missing","version":1,"x":5,"z":5,"width":2,"depth":2,"rotation":0}]'); raise exception 'Invalid layout accepted'; exception when raise_exception then if sqlerrm='Invalid layout accepted' then raise; end if; end;
+  if (select version from public.shelves where id='1f-s2')<>1 then raise exception 'Failed layout left partial changes'; end if;
+  begin update public.floors set width='NaN'::real where id='1f'; raise exception 'Non-finite layout accepted'; exception when check_violation then null; when raise_exception then if sqlerrm='Non-finite layout accepted' then raise; end if; end;
+  begin delete from public.floors where id='2f'; raise exception 'Connected floor deletion accepted'; exception when raise_exception then if sqlerrm='Connected floor deletion accepted' then raise; end if; end;
 end; $$;
 reset role;
 

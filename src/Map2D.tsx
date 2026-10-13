@@ -1,7 +1,22 @@
 import type { AccessPoint, Floor, Shelf } from './model';
+import { useEffect, useRef, useState } from 'react';
+import './map-controls.css';
 
-export default function Map2D({ floor, shelves, points, selected, onShelf }: { floor: Floor; shelves: Shelf[]; points: AccessPoint[]; selected?: string; onShelf: (id: string) => void }) {
-  return <svg className="floor-map" viewBox={`-1 -1 ${floor.width + 2} ${floor.depth + 2}`} role="img" aria-label={`${floor.name} 平面图，点击货架查看商品`}>
+export default function Map2D({ floor, shelves, points, selected, selectedFace, onShelf }: { floor: Floor; shelves: Shelf[]; points: AccessPoint[]; selected?: string; selectedFace?: 'A' | 'B'; onShelf: (id: string) => void }) {
+  const [zoom,setZoom]=useState(1);
+  const [center,setCenter]=useState({x:floor.width/2,z:floor.depth/2});
+  const drag=useRef<{x:number;y:number;center:{x:number;z:number}} | null>(null);
+  useEffect(()=>{
+    const target=shelves.find(s=>s.id===selected);
+    setZoom(target ? 1.45 : 1); setCenter(target ? {x:target.x,z:target.z} : {x:floor.width/2,z:floor.depth/2});
+  },[selected,floor.id]);
+  const width=(floor.width+2)/zoom, depth=(floor.depth+2)/zoom;
+  const x=Math.max(-1,Math.min(floor.width+1-width,center.x-width/2));
+  const z=Math.max(-1,Math.min(floor.depth+1-depth,center.z-depth/2));
+  return <div className="map2d-container"><div className="map-zoom"><button aria-label="放大地图" disabled={zoom>=3} onClick={()=>setZoom(v=>Math.min(3,v+.4))}>+</button><button aria-label="缩小地图" disabled={zoom<=1} onClick={()=>setZoom(v=>Math.max(1,v-.4))}>−</button></div><svg className="floor-map" viewBox={`${x} ${z} ${width} ${depth}`} style={{touchAction:zoom>1 ? 'none' : 'pan-y'}} role="group" aria-label={`${floor.name} 平面图，点击货架查看商品`}
+    onPointerDown={e=>{if(zoom<=1 || (e.target as Element).closest('.map-shelf'))return; drag.current={x:e.clientX,y:e.clientY,center};e.currentTarget.setPointerCapture(e.pointerId);}}
+    onPointerMove={e=>{if(!drag.current)return;const rect=e.currentTarget.getBoundingClientRect();const scale=Math.min(rect.width/width,rect.height/depth);setCenter({x:Math.max(0,Math.min(floor.width,drag.current.center.x-(e.clientX-drag.current.x)/scale)),z:Math.max(0,Math.min(floor.depth,drag.current.center.z-(e.clientY-drag.current.y)/scale))});}}
+    onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}}>
     <defs><pattern id="grid" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M 1 0 L 0 0 0 1" fill="none" stroke="#dfdfd5" strokeWidth=".018" /></pattern></defs>
     <rect width={floor.width} height={floor.depth} rx=".4" fill="#f5f4ed" stroke="#d4d7cc" strokeWidth=".08" />
     <rect width={floor.width} height={floor.depth} fill="url(#grid)" />
@@ -18,6 +33,7 @@ export default function Map2D({ floor, shelves, points, selected, onShelf }: { f
       <text x="0" y="-.1" textAnchor="middle" className="map-code">{s.code}</text>
       <text x="0" y=".48" textAnchor="middle" className="map-category">{s.category}</text>
       {selected === s.id && <><text x={-s.width / 2 - .35} y=".15" textAnchor="middle" className="map-label">A</text><text x={s.width / 2 + .35} y=".15" textAnchor="middle" className="map-label">B</text></>}
+      {selected === s.id && selectedFace && <line x1={selectedFace === 'A' ? -s.width / 2 + .12 : s.width / 2 - .12} x2={selectedFace === 'A' ? -s.width / 2 + .12 : s.width / 2 - .12} y1={-s.depth / 2 + .15} y2={s.depth / 2 - .15} stroke="white" strokeWidth=".13" aria-label={`目标 ${selectedFace} 面`} />}
     </g>)}
-  </svg>;
+  </svg></div>;
 }

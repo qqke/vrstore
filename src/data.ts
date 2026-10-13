@@ -14,7 +14,11 @@ export async function loadCatalog(): Promise<LoadedCatalog> {
   if (!supabase) return { catalog: demoCatalog, mode: 'demo' };
   try {
     const names = ['stores', 'floors', 'shelves', 'products', 'product_locations', 'floor_access_points'] as const;
-    const results = await Promise.all(names.map(name => supabase.from(name).select('*').limit(5000)));
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    let results;
+    try { results = await Promise.all(names.map(name => supabase.from(name).select('*').limit(5000).abortSignal(controller.signal))); }
+    finally { clearTimeout(timer); }
     const error = results.find(r => r.error)?.error;
     if (error) throw error;
     if (results.some(r => r.data?.length === 5000)) throw new Error('门店目录超过首版容量，请分页加载后使用。');
@@ -25,7 +29,8 @@ export async function loadCatalog(): Promise<LoadedCatalog> {
   } catch (error) {
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-      if (cached && Date.now() - Date.parse(cached.savedAt) < 7 * 86400000) return { catalog: validateCatalog(cached.catalog), mode: 'cached', cachedAt: cached.savedAt };
+      const age = cached ? Date.now() - Date.parse(cached.savedAt) : NaN;
+      if (age >= 0 && age < 7 * 86400000) return { catalog: validateCatalog(cached.catalog), mode: 'cached', cachedAt: cached.savedAt };
     } catch { /* Ignore corrupt or unavailable cache. */ }
     throw new Error(error instanceof Error ? error.message : '无法连接门店数据，请稍后重试。');
   }

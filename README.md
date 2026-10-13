@@ -39,7 +39,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 1. `supabase/schema.sql`（建表、约束、RLS、Storage）
 2. `supabase/hardening.sql`（版本、导入、布局事务）
 3. 如果 Dashboard 启用了自动 RLS，执行 `supabase/restrict-auto-rls.sql` 撤销系统生成函数的客户端执行权限。
-4. `supabase/seed.sql`（可选，明确标注的演示门店）
+4. `supabase/finite-layout.sql`（有限坐标和必填名称约束）
+5. `supabase/protect-floor-links.sql`（防止删除被连接设施引用的楼层）
+6. `supabase/seed.sql`（可选，明确标注的演示门店）
 
 前两项仅安装一次。种子使用固定演示 ID、幂等新增，不覆盖已有记录。重新生成种子：`node scripts/generate-seed.mjs`。
 
@@ -72,7 +74,9 @@ npm run build
 npm audit
 ```
 
-浏览器测试使用独立端口 5180 和纯演示环境，实际开发端口 5173 可连接真实 Supabase。测试覆盖搜索、跨层定位、旧链接、刷新、手机宽度与 3D；实机和实店核对仍需进行。
+浏览器测试使用独立端口 5180 和模拟 Supabase API，不读写真实项目；实际开发端口 5173 可连接真实 Supabase。测试覆盖搜索、跨层定位、旧链接、刷新、手机宽度、3D、断网缓存和管理冲突；实机和实店核对仍需进行。
+
+真实公开 API 验证：`node --env-file=.env.local scripts/verify-api.mjs`。管理员隔离与事务验证使用 `supabase/verify-permissions.sql`，所有测试变化会回滚。脚本依赖原始演示种子，仅在专用试点项目执行。
 
 ## GitHub Pages
 

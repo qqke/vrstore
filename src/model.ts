@@ -42,8 +42,10 @@ export function validateCatalog(value: unknown): Catalog {
   for (const key of ['stores', 'floors', 'shelves', 'products', 'locations', 'access_points'] as const) {
     if (!Array.isArray(c[key]) || c[key].some(row => !row || typeof row.id !== 'string')) throw new Error(`无效的数据表：${key}`);
   }
-  if (c.stores.some(s => typeof s.name !== 'string') || c.floors.some(f => !(f.width > 0 && f.depth > 0) || typeof f.name !== 'string') ||
+  if (c.stores.some(s => typeof s.name !== 'string') || c.floors.some(f => ![f.width,f.depth,f.sort_order].every(Number.isFinite) || !(f.width > 0 && f.depth > 0) || typeof f.name !== 'string') ||
     c.shelves.some(s => ![s.x, s.z, s.rotation, s.width, s.depth].every(Number.isFinite) || s.width <= 0 || s.depth <= 0) ||
-    c.products.some(p => typeof p.name_zh !== 'string' || !Array.isArray(p.aliases) || typeof p.jan !== 'string')) throw new Error('门店字段格式无效');
+    c.products.some(p => typeof p.name_zh !== 'string' || typeof p.name_ja !== 'string' || typeof p.brand !== 'string' || !Array.isArray(p.aliases) || p.aliases.some(a => typeof a !== 'string') || typeof p.jan !== 'string') ||
+    c.locations.some(l => !Number.isInteger(l.level) || l.level < 1 || !['A','B'].includes(l.face) || typeof l.last_verified_at !== 'string') ||
+    c.access_points.some(p => ![p.x,p.z].every(Number.isFinite) || !Array.isArray(p.connects_to))) throw new Error('门店字段格式无效');
   return c;
 }
