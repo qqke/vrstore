@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { createClient } from '@supabase/supabase-js';
+
+const url = process.env.VITE_SUPABASE_URL;
+const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+assert(url && key, 'Set public Supabase environment variables.');
+const client = createClient(url, key, { auth: { persistSession:false } });
+const floors = await client.from('floors').select('id,name');
+assert.equal(floors.error, null, floors.error?.message);
+assert.equal(floors.data.length, 3, 'Seeded three-floor demo should be publicly readable.');
+const location = await client.from('product_locations').select('id').limit(1);
+assert.equal(location.error, null, location.error?.message);
+assert(location.data.length === 1);
+const denied = await client.from('products').insert({ id:'anonymous-write-test',store_id:'demo',name_zh:'must be rejected' });
+assert(denied.error, 'Anonymous writes must be rejected.');
+const grants = await client.from('store_admins').select('*');
+assert(grants.error, 'Anonymous users must not read administrator grants.');
+const rpc = await client.rpc('import_records',{ target_table:'products',rows:[{ id:'anonymous-import-test',store_id:'demo',name_zh:'must be rejected' }] });
+assert(rpc.error, 'Anonymous bulk imports must be rejected.');
+console.log('Public API verified: three floors readable; anonymous write, grants and import blocked.');
