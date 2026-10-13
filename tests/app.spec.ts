@@ -94,6 +94,24 @@ test('local management retains edits on version conflicts', async ({page}) => {
   await page.getByRole('button',{name:'保存',exact:true}).click();
   await expect(page.getByRole('status')).toContainText('记录已被他人修改或权限已撤销');
   await expect(page.getByLabel('中文名',{exact:false})).toHaveValue('修改尚未保存');
+  const imageURL=page.getByLabel('图片 URL',{exact:false});
+  const previousURL=await imageURL.inputValue();
+  await page.getByLabel('上传商品图片').setInputFiles({name:'invalid.txt',mimeType:'text/plain',buffer:Buffer.from('invalid')});
+  await expect(page.getByRole('status')).toContainText('JPG / PNG / WebP');
+  const png=await page.evaluate(()=>document.createElement('canvas').toDataURL('image/png').split(',')[1]);
+  await page.route('https://demo-test.supabase.co/storage/v1/object/product-images/**',route=>route.fulfill({status:403,json:{statusCode:'403',error:'Unauthorized',message:'Upload denied'}}));
+  await page.getByLabel('上传商品图片').setInputFiles({name:'test.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+  await expect(page.getByRole('status')).toContainText('Upload denied');
+  await expect(imageURL).toHaveValue(previousURL);
+  await page.route('https://demo-test.supabase.co/storage/v1/object/product-images/**',async route=>{
+    expect(route.request().postDataBuffer()!.toString('latin1')).toContain('Content-Type: image/webp');
+    expect(route.request().url()).toMatch(/product-images\/demo\/[0-9a-f-]+\.webp$/);
+    await route.fulfill({json:{Key:'demo/test.webp'}});
+  });
+  await page.getByLabel('上传商品图片').setInputFiles({name:'test.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+  await expect(page.getByRole('status')).toContainText('图片已上传，请保存商品');
+  await expect(imageURL).toHaveValue(/\/object\/public\/product-images\/demo\/[0-9a-f-]+\.webp$/);
+  await expect(page.getByLabel('中文名',{exact:false})).toHaveValue('修改尚未保存');
 });
 
 test('3D map either renders or falls back with a clear explanation', async ({ page }) => {
