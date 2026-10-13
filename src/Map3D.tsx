@@ -1,11 +1,11 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import { Bounds, OrbitControls, OrthographicCamera, Html } from '@react-three/drei';
 import type { AccessPoint, Floor, Shelf } from './model';
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 function Controls({ target, onFailure }: { target: [number, number, number]; onFailure: () => void }) {
   const gl = useThree(state => state.gl);
-  useEffect(()=>{
+  useLayoutEffect(()=>{
     const lost=(event:Event)=>{event.preventDefault();onFailure();};
     gl.domElement.addEventListener('webglcontextlost',lost);
     return ()=>gl.domElement.removeEventListener('webglcontextlost',lost);

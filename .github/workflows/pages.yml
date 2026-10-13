@@ -23,6 +23,12 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-failure
+          path: test-results/
+          retention-days: 7
       - run: npm run build
         env:
           PAGES_BASE: /vrstore/
