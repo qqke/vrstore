@@ -13,6 +13,7 @@ export async function loadCatalog(): Promise<LoadedCatalog> {
   if (configurationError) throw new Error(configurationError);
   if (!supabase) return { catalog: demoCatalog, mode: 'demo' };
   try {
+    // shortcut: each table is capped at 5000 rows, add store-scoped pagination before expanding beyond the pilot.
     const names = ['stores', 'floors', 'shelves', 'products', 'product_locations', 'floor_access_points'] as const;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 12000);

@@ -5,6 +5,10 @@ const url = process.env.VITE_SUPABASE_URL;
 const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 assert(url && key, 'Set public Supabase environment variables.');
 const client = createClient(url, key, { auth: { persistSession:false } });
+const settingsResponse=await fetch(url+'/auth/v1/settings',{headers:{apikey:key}});
+assert(settingsResponse.ok,'Public Auth settings must be readable.');
+const settings=await settingsResponse.json();
+assert.equal(settings.disable_signup,true,'Public signups must be disabled.');
 const floors = await client.from('floors').select('id,name');
 assert.equal(floors.error, null, floors.error?.message);
 assert.equal(floors.data.length, 3, 'Seeded three-floor demo should be publicly readable.');
@@ -25,4 +29,4 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
 const upload=await client.storage.from('product-images').upload('demo/anonymous-security-check.png',png,{contentType:'image/png'});
 assert(upload.error,'Anonymous uploads must be rejected.');
 assert.match(upload.error.message,/permission|row-level security|unauthorized/i);
-console.log('Public API verified: three floors readable; anonymous insert, update, grants, import and image upload blocked.');
+console.log('Public API verified: signups disabled; three floors readable; anonymous insert, update, grants, import and image upload blocked.');

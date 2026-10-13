@@ -100,4 +100,14 @@ test('3D map either renders or falls back with a clear explanation', async ({ pa
   await page.goto('/');
   await page.getByRole('button', { name: '3D', exact: true }).click();
   await expect(page.locator('canvas').or(page.getByText('此设备的 3D 地图不可用，已切换为平面图。'))).toBeVisible({ timeout: 20000 });
+  if (await page.locator('canvas').count()) {
+    const oldCanvas=await page.locator('canvas').elementHandle();
+    await page.locator('.floor-tabs').getByRole('button',{name:'2F',exact:true}).click();
+    await expect(page.locator('.three-label')).toHaveCount(8);
+    await oldCanvas!.evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
+    await expect(page.getByRole('button',{name:'3D',exact:true})).toHaveAttribute('aria-pressed','true');
+    await page.locator('canvas').evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
+    await expect(page.getByRole('status')).toContainText('已切换为平面图');
+    await expect(page.locator('.floor-map')).toBeVisible();
+  }
 });

@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { createClient, type Session } from '@supabase/supabase-js';
+import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import { supabase as publicClient, configurationError } from './data';
 import { entities, importCSV, parseField } from './admin-fields';
 import './admin.css';
 
-const supabase = publicClient ? createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, storageKey: 'tana-admin-session', detectSessionInUrl: false } }) : null;
+// Keep the in-memory login when Vite replaces this module during local maintenance.
+const supabase: SupabaseClient | null = import.meta.hot?.data.adminClient ?? (publicClient ? createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, storageKey: 'tana-admin-session', detectSessionInUrl: false } }) : null);
+if (import.meta.hot) import.meta.hot.data.adminClient = supabase;
 
 type Row = Record<string, unknown> & { id: string; version: number };
 const show = (v: unknown) => v === null || v === undefined ? '' : Array.isArray(v) ? v.join('|') : String(v);
@@ -67,7 +69,7 @@ export default function Admin() {
 
   async function run(action: () => Promise<void>) {
     setBusy(true); setMessage('');
-    try { await action(); } catch (e) { setMessage(e instanceof Error ? e.message : '操作失败，请检查权限和数据。'); }
+    try { await action(); } catch (e) { setMessage(e && typeof e === 'object' && 'message' in e ? String(e.message) : '操作失败，请检查权限和数据。'); }
     finally { setBusy(false); }
   }
   async function refreshRows() {

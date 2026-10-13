@@ -62,6 +62,8 @@ values ('YOUR_AUTH_USER_UUID','demo');
 
 授权关系无法由客户端自行修改。新增门店先通过 Dashboard 创建，再分配管理员；页面可维护已授权门店和其楼层。操作失败保留输入；冲突时刷新并重新核对，不覆盖新版本。
 
+Auth → Sign In / Providers 关闭 Allow new users to sign up，保留 Email 登录；管理账号由 Dashboard 创建，顾客继续匿名读取公开数据。
+
 CSV 使用数据库字段名作为表头，含 id，最多 200 行；数组用 `|` 分隔，布尔用 true / false，核实时间用带时区 ISO。导入只新增：重复或无效记录会使整批回滚。批量坐标调整可调用 `update_layout(rows)`，每项含 id、version、x、z、width、depth、rotation，任何冲突整批回滚。
 
 图片存入 `product-images/门店ID/随机ID.webp`，只允许管理员写所属门店路径。上传前客户端压缩，桶限制 2MB 和 JPG/PNG/WebP。公共图片 URL 可被任何人访问，只能上传许可素材。
