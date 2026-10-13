@@ -30,7 +30,14 @@ test('search, cross-floor location and sharing survive reload', async ({ page })
   await page.reload();
   await expect(page.locator('.floor-tabs .active')).toHaveText('2F');
   await expect(page.getByRole('region', { name: '选中商品位置' })).toContainText('极润保湿化妆水');
+  await page.getByRole('button',{name:'恢复全层视图'}).click();
+  await expect(page.locator('.map-shelf.selected')).toHaveCount(0);
+  await page.getByRole('button',{name:'2F · B01',exact:true}).click();
+  await expect(page.locator('.map-shelf.selected')).toHaveCount(1);
   await page.screenshot({ path:'test-results/preview-desktop.png',fullPage:true });
+  await page.locator('.map-shelf[aria-label="B04 护肤货架"]').click();
+  await expect(page.getByRole('status')).toContainText('还没有已发布的商品位置');
+  await expect(page).not.toHaveURL(/product=/);
 });
 
 test('invalid positions and empty searches are explicit', async ({ page }) => {
@@ -49,6 +56,9 @@ test('mobile layout has no horizontal overflow and floor changes work', async ({
   await page.locator('.floor-tabs').getByRole('button', { name: 'B1', exact: true }).click();
   await expect(page.locator('.floor-tabs .active')).toHaveText('B1');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.locator('.product-row').first().click();
+  await expect(page.locator('.floor-tabs .active')).toHaveText('1F');
+  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(200);
   await page.screenshot({ path:'test-results/preview-mobile.png',fullPage:true });
 });
 

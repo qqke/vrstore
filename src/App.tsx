@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpRight, Box, Check, ChevronRight, Compass, Layers, MapPin, RotateCcw, Search, Share2, ShoppingBag, X } from 'lucide-react';
 import { loadCatalog, type LoadedCatalog } from './data';
 import { isStale, parseLink, productLocations, searchProducts } from './model';
@@ -28,6 +28,7 @@ export default function App() {
   const [reset, setReset] = useState(0);
   const [notice, setNotice] = useState('');
   const [shareState, setShareState] = useState('');
+  const mapToolbar = useRef<HTMLDivElement>(null);
   const refresh = useCallback(async () => {
     setLoading(true); setError('');
     try { setLoaded(await loadCatalog()); } catch (e) { setError(e instanceof Error ? e.message : '读取失败'); }
@@ -63,6 +64,7 @@ export default function App() {
       setShelfId(loc?.floor.id === fl?.id || !fl ? loc?.shelf.id || '' : '');
       if (!fl && loc) setFloorId(loc.floor.id);
       if (link.product && !loc) setNotice('分享的位置已下线或不可用，请重新搜索。');
+      if (loc && window.matchMedia('(max-width:760px)').matches) requestAnimationFrame(()=>mapToolbar.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth',block:'start'}));
     };
     read(); window.addEventListener('hashchange', read);
     return () => window.removeEventListener('hashchange', read);
@@ -72,7 +74,9 @@ export default function App() {
     const params = new URLSearchParams({ store: next.store || store!.id, floor: next.floor || floor!.id });
     if (next.product) params.set('product', next.product);
     if (next.location) params.set('location', next.location);
-    window.location.hash = params.toString();
+    const hash = `#${params.toString()}`;
+    if (window.location.hash === hash) window.dispatchEvent(new HashChangeEvent('hashchange'));
+    else window.location.hash = params.toString();
   }
   function chooseProduct(id: string) {
     if (!catalog || !store) return;
@@ -84,7 +88,7 @@ export default function App() {
     setShelfId(id);
     const l = catalog?.locations.find(l => l.active && l.shelf_id === id);
     if (l) navigate({ product: l.product_id, location: l.id });
-    else { setProductId(''); setLocationId(''); setNotice('这个货架还没有已发布的商品位置。'); }
+    else { navigate({}); setProductId(''); setLocationId(''); setNotice('这个货架还没有已发布的商品位置。'); }
   }
   function fail3D() { setView('2d'); setNotice('此设备的 3D 地图不可用，已切换为平面图。'); }
   async function share() {
@@ -113,7 +117,7 @@ export default function App() {
 
       <section className="map-workspace" aria-label="门店地图">
         <div className="map-heading"><div><span className="eyebrow">STORE EXPLORER / 店铺导览</span><h2>你的下一站，在哪一架？</h2></div><div className="view-toggle"><button aria-pressed={view === '2d'} className={view === '2d' ? 'active' : ''} onClick={() => setView('2d')}><Layers size={15} />平面</button><button aria-pressed={view === '3d'} className={view === '3d' ? 'active' : ''} onClick={() => setView('3d')}><Box size={15} />3D</button></div></div>
-        <div className="map-toolbar"><div className="floor-tabs" aria-label="选择楼层">{floors.map(f => <button key={f.id} className={f.id === floor.id ? 'active' : ''} aria-pressed={f.id === floor.id} onClick={() => { setShelfId(''); navigate({ floor: f.id, product: productId, location: locationId }); }}>{f.name}</button>)}</div><span className="floor-category">{floor.category}</span><button className="reset-map" aria-label="恢复全层视图" onClick={() => { setShelfId(''); setReset(v => v + 1); }}><RotateCcw size={16} /></button></div>
+        <div className="map-toolbar" ref={mapToolbar}><div className="floor-tabs" aria-label="选择楼层">{floors.map(f => <button key={f.id} className={f.id === floor.id ? 'active' : ''} aria-pressed={f.id === floor.id} onClick={() => { setShelfId(''); navigate({ floor: f.id, product: productId, location: locationId }); }}>{f.name}</button>)}</div><span className="floor-category">{floor.category}</span><button className="reset-map" aria-label="恢复全层视图" onClick={() => { setShelfId(''); setReset(v => v + 1); }}><RotateCcw size={16} /></button></div>
         <div className="map-canvas"><div className="floor-watermark" aria-hidden="true">{floor.name}</div><div className="map-stage" key={`${floor.id}-${reset}`}>{view === '2d' ? <Map2D floor={floor} shelves={shelves} points={points} selected={selectedShelf?.id} selectedFace={selectedShelf && position && selectedShelf.id === position.shelf.id ? position.location.face : undefined} onShelf={chooseShelf} /> : <MapBoundary onFailure={fail3D}><Suspense fallback={<div className="map-loading">正在展开 3D 地图…</div>}><Map3D floor={floor} shelves={shelves} points={points} selected={selectedShelf?.id} selectedFace={selectedShelf && position && selectedShelf.id === position.shelf.id ? position.location.face : undefined} onShelf={chooseShelf} onFailure={fail3D} /></Suspense></MapBoundary>}</div><div className="map-compass"><Compass size={21} /><span>以店内地标辨认方向</span></div><span className="map-hint">{view === '3d' ? '拖动旋转 · 双指缩放' : '点击货架，查看商品'}</span></div>
         <div className="map-legend"><span><i className="legend-shelf" />商品货架</span><span><i className="legend-target" />选中货架</span><span className="legend-note">当前查看 {floor.name} · 不含实时定位</span></div>
 
@@ -124,6 +128,7 @@ export default function App() {
     <footer className="app-footer"><span>棚 tana · 把时间留给想逛的东西</span><span>{isDemo ? 'DEMO / 虚构门店' : '商品位置以现场为准'}</span></footer>
   </div>;
 }
+
 
 
 

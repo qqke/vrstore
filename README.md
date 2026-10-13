@@ -41,7 +41,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 3. 如果 Dashboard 启用了自动 RLS，执行 `supabase/restrict-auto-rls.sql` 撤销系统生成函数的客户端执行权限。
 4. `supabase/finite-layout.sql`（有限坐标和必填名称约束）
 5. `supabase/protect-floor-links.sql`（防止删除被连接设施引用的楼层）
-6. `supabase/seed.sql`（可选，明确标注的演示门店）
+6. `supabase/update-timestamps.sql`（维护更新时间与现场核实时间分离）
+7. `supabase/protect-access-points.sql`（保护被其他楼层引用的连接点）
+8. `supabase/seed.sql`（可选，明确标注的演示门店）
 
 前两项仅安装一次。种子使用固定演示 ID、幂等新增，不覆盖已有记录。重新生成种子：`node scripts/generate-seed.mjs`。
 
@@ -94,10 +96,12 @@ GitHub Pages 对商业业务 / SaaS 及敏感交易有限制，正式商业运�
 - 大规模修改前备份并下线门店，核实后重新发布。
 - JSON 导出仅导出当前可读表，不替代数据库完整备份；Storage 图片必须单独备份。
 - 恢复先在隔离项目安装 schema/hardening，再按门店、楼层、货架、商品、位置、连接点顺序导入并恢复图片，确认权限和关联后切换项目配置。
+- 表快照不包含 Auth 账号或密码；目标项目需要先创建管理账号，再重新授权，不直接复用来源项目的用户 UUID。
 - 前端回滚：恢复最近已验证 commit 并重新运行 Pages workflow；数据库变更另行恢复，前端回滚不恢复数据库。
 - 撤权：删除对应 store_admins 关系，验证后续 API 写操作被拒绝。
 - 缓存仅用于已访问页面的降级，不支持断网首次访问。已公开数据无法从用户已保存的副本中收回。
 - 当前客户端目录读取上限为每表 5000 条，达到上限会拒绝不完整目录；更大规模需实现分页。
 - 公开数据可被抓取，前端限流不能防御恶意流量，需监测服务额度。
+- 当前免费方案未开启泄漏密码检测；该功能需要 Pro 或以上套餐，不自动升级。请使用独立强密码；正式运营前评估管理员 MFA。参考：https://supabase.com/docs/guides/auth/password-security
 
 官方参考：[Pages 限制](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)、[Vite 部署](https://vite.dev/guide/static-deploy.html)、[Supabase 密钥](https://supabase.com/docs/guides/getting-started/api-keys)、[Storage 权限](https://supabase.com/docs/guides/storage/security/access-control)、[备份](https://supabase.com/docs/guides/platform/backups)。
