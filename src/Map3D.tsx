@@ -1,21 +1,18 @@
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { Bounds, OrbitControls, OrthographicCamera, Html } from '@react-three/drei';
 import type { AccessPoint, Floor, Shelf } from './model';
 import { useLayoutEffect, useRef } from 'react';
 
-function Controls({ target, onFailure }: { target: [number, number, number]; onFailure: () => void }) {
-  const gl = useThree(state => state.gl);
-  useLayoutEffect(()=>{
-    const lost=(event:Event)=>{event.preventDefault();onFailure();};
-    gl.domElement.addEventListener('webglcontextlost',lost);
-    return ()=>gl.domElement.removeEventListener('webglcontextlost',lost);
-  },[gl,onFailure]);
-  return <OrbitControls target={target} makeDefault enableDamping={false} minZoom={1} maxZoom={80} maxPolarAngle={Math.PI / 2.3} />;
-}
-
 export default function Map3D({ floor, shelves, points, selected, selectedFace, onShelf, onFailure }: { floor: Floor; shelves: Shelf[]; points: AccessPoint[]; selected?: string; selectedFace?: 'A' | 'B'; onShelf: (id: string) => void; onFailure: () => void }) {
   const target = shelves.find(s => s.id === selected);
   const labels = useRef<HTMLDivElement>(null!);
+  useLayoutEffect(() => {
+    const container = labels.current;
+    const lost = (event: Event) => { event.preventDefault(); onFailure(); };
+    // Capture also covers the interval before the asynchronous 3D scene mounts.
+    container.addEventListener('webglcontextlost', lost, true);
+    return () => container.removeEventListener('webglcontextlost', lost, true);
+  }, [onFailure]);
   return <div ref={labels} style={{height:"100%",position:"relative"}}><Canvas frameloop="demand" dpr={[1, 1.5]} aria-label={`${floor.name} 3D 地图`}>
     <color attach="background" args={['#f1f2e9']} />
     <OrthographicCamera makeDefault position={[24, 28, 28]} zoom={25} near={.1} far={200} />
@@ -31,7 +28,7 @@ export default function Map3D({ floor, shelves, points, selected, selectedFace, 
     {points.map(p => <Html portal={labels} key={p.id} position={[p.x, .1, p.z]} center zIndexRange={[10, 0]}><span className="three-access">{p.label}{p.available ? '' : ' 停用'}</span></Html>)}
     <Html portal={labels} position={[10, .1, floor.depth - 1]} center zIndexRange={[10, 0]}><span className="three-access">{floor.name === '1F' ? '入口 / 收银台' : '收银台'}</span></Html>
     </Bounds>
-    <Controls target={target ? [target.x, 0, target.z] : [floor.width / 2, 0, floor.depth / 2]} onFailure={onFailure} />
+    <OrbitControls target={target ? [target.x, 0, target.z] : [floor.width / 2, 0, floor.depth / 2]} makeDefault enableDamping={false} minZoom={1} maxZoom={80} maxPolarAngle={Math.PI / 2.3} />
   </Canvas></div>;
 }
 
