@@ -205,15 +205,30 @@ test('mobile layout has no horizontal overflow and floor changes work', async ({
   await page.screenshot({ path:'test-results/preview-mobile.png',fullPage:true });
 });
 
-test('network failure uses clearly labeled historical cache', async ({page}) => {
+test('slow catalog responses show loading and then recover without fake empty results', async ({ page }) => {
+  await page.route('https://demo-test.supabase.co/rest/v1/**', async route => {
+    await new Promise(resolve => setTimeout(resolve, 750));
+    await route.fallback();
+  });
+  await page.goto('/');
+  await expect(page.getByText('正在展开店铺地图…', { exact: true })).toBeVisible();
+  await expect(page.locator('.product-row')).toHaveCount(30);
+  await expect(page.getByText('暂时没有找到', { exact: true })).toHaveCount(0);
+  await page.getByRole('textbox', { name: '搜索商品' }).fill('安耐晒');
+  await expect(page.locator('.product-row')).toHaveCount(1);
+});
+
+for (const failure of ['network', 'HTTP 503']) {
+test(`${failure} failure uses clearly labeled historical cache`, async ({page}) => {
   await page.goto('/');
   await expect(page.locator('.product-row')).toHaveCount(30);
-  await page.route('https://demo-test.supabase.co/rest/v1/**', route=>route.abort());
+  await page.route('https://demo-test.supabase.co/rest/v1/**', route => failure === 'network' ? route.abort() : route.fulfill({ status: 503, json: { message: 'Service unavailable' } }));
   await page.reload();
   await expect(page.locator('.data-banner')).toContainText('保存的历史数据',{timeout:18000});
   await expect(page.locator('.demo-badge')).toHaveText('历史数据');
   await expect(page.locator('.product-row')).toHaveCount(30);
 });
+}
 
 test('first access with failed network never displays a fake empty store', async ({page}) => {
   await page.route('https://demo-test.supabase.co/rest/v1/**', route=>route.abort());
