@@ -281,7 +281,10 @@ test('3D map either renders or falls back with a clear explanation', async ({ pa
   if (await page.locator('canvas').count()) {
     const oldCanvas=await page.locator('canvas').elementHandle();
     await page.locator('.floor-tabs').getByRole('button',{name:'2F',exact:true}).click();
+    await expect(page.locator('.floor-tabs .active')).toHaveText('2F');
+    await expect.poll(() => oldCanvas!.evaluate(canvas => canvas.isConnected)).toBe(false);
     await expect(page.locator('.three-label')).toHaveCount(8);
+    await expect(page.locator('.three-label[aria-label="B01 护肤货架"]')).toBeVisible();
     await oldCanvas!.evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
     await expect(page.getByRole('button',{name:'3D',exact:true})).toHaveAttribute('aria-pressed','true');
     await page.locator('canvas').evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
