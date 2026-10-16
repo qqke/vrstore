@@ -33,7 +33,7 @@ const items = [
   ['大塚', '宝矿力饮料', 'ポカリスエット', '500ml', '健康', '#a9c4d7', '饮料']
 ];
 
-const products: Product[] = items.map((p, i) => ({ id: `p${i + 1}`, brand: p[0], name_zh: p[1], name_ja: p[2], spec: p[3], category: p[4], color: p[5], aliases: p[6].split(' '), jan: `04900000${String(i + 1).padStart(5, '0')}`, image_url: null }));
+const products: Product[] = items.map((p, i) => ({ id: `p${i + 1}`, brand: p[0], name_zh: p[1], name_ja: p[2], spec: p[3], category: p[4], color: p[5], aliases: p[6].split(' '), jan: `04900000${String(i + 1).padStart(5, '0')}`, image_url: null, active: true }));
 const floors = [
   { id: 'b1', name: 'B1', category: '日用 · 健康', sort_order: -1 },
   { id: '1f', name: '1F', category: '护肤 · 医药', sort_order: 0 },

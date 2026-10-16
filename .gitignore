@@ -8,3 +8,4 @@ test-results/
 *.local
 *.tsbuildinfo
 .backups/
+supabase/.temp/

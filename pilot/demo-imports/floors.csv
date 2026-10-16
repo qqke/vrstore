@@ -1,0 +1,4 @@
+id,name,category,sort_order,store_id,width,depth,published
+"b1","B1","日用 · 健康","-1","demo","20","16","true"
+"1f","1F","护肤 · 医药","0","demo","20","16","true"
+"2f","2F","彩妆 · 护肤","1","demo","20","16","true"

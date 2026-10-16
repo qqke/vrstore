@@ -1,0 +1,7 @@
+id,floor_id,group_code,kind,label,x,z,connects_to,direction,available,accessible
+"b1-elevator","b1","E1","elevator","电梯","18","2","1f|2f","both","true","true"
+"b1-stairs","b1","S1","stairs","楼梯","2","2","1f","both","true","false"
+"1f-elevator","1f","E1","elevator","电梯","18","2","b1|2f","both","true","true"
+"1f-stairs","1f","S1","stairs","楼梯","2","2","b1|2f","both","true","false"
+"2f-elevator","2f","E1","elevator","电梯","18","2","b1|1f","both","true","true"
+"2f-stairs","2f","S1","stairs","楼梯","2","2","1f","both","true","false"

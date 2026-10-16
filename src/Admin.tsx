@@ -46,13 +46,13 @@ export default function Admin() {
   useEffect(() => {
     if (!supabase) return;
     void supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, current) => { setSession(current); if (!current) { setRows([]); setSelected(undefined); setGrants([]); } });
+    const { data } = supabase.auth.onAuthStateChange((_event, current) => { setSession(current); if (!current) { setRows([]); setSelected(undefined); setValues({}); setPreview([]); setCsv(''); setGrants([]); } });
     return () => data.subscription.unsubscribe();
   }, []);
   useEffect(() => {
     if (!session || !supabase) return;
     let cancelled = false;
-    setSelected(undefined); setPreview([]); setCsv(''); setFilter('');
+    setSelected(undefined); setValues({}); setRows([]); setGrants([]); setPreview([]); setCsv(''); setFilter(''); setMessage('');
     void (async () => {
       setBusy(true);
       try {
@@ -105,7 +105,8 @@ export default function Admin() {
       const canvas = document.createElement('canvas'); canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
       const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('图片压缩不可用'); ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', .85));
-      if (!blob || blob.size > 2 * 1024 * 1024) throw new Error('压缩后仍超过 2MB，请缩小图片。');
+      if (!blob || blob.type !== 'image/webp') throw new Error('此浏览器无法生成 WebP 图片，请更换浏览器。');
+      if (blob.size > 2 * 1024 * 1024) throw new Error('压缩后仍超过 2MB，请缩小图片。');
       const path = `${selected.store_id}/${crypto.randomUUID()}.webp`;
       const result = await supabase!.storage.from('product-images').upload(path, blob, { contentType: 'image/webp', upsert: false });
       if (result.error) throw result.error;

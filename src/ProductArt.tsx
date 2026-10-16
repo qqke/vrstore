@@ -2,8 +2,8 @@ import type { Product } from './model';
 import { useState } from 'react';
 
 export default function ProductArt({ product, large = false }: { product: Product; large?: boolean }) {
-  const [failed, setFailed] = useState(false);
-  if (product.image_url && !failed) return <img className="product-photo" src={product.image_url} alt={`${product.brand} ${product.name_zh} ${product.spec}`} loading="lazy" onError={() => setFailed(true)} />;
+  const [failedURL, setFailedURL] = useState<string | null>(null);
+  if (product.image_url && product.image_url !== failedURL) return <img className="product-photo" src={product.image_url} alt={`${product.brand} ${product.name_zh} ${product.spec}`} loading="lazy" onError={() => setFailedURL(product.image_url)} />;
   const box = product.category === '健康' || product.category === '医药' || product.category === '彩妆';
   return <svg viewBox="0 0 100 120" className={large ? 'product-art large' : 'product-art'} role="img" aria-label={`${product.name_zh}，包装示意，非商品实拍`}>
     <ellipse cx="50" cy="108" rx="27" ry="4" fill="#293e3010" />
