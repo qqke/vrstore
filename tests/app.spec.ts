@@ -2,6 +2,40 @@ import { test, expect } from '@playwright/test';
 import { demoCatalog } from '../src/demo';
 import { writeFileSync } from 'node:fs';
 
+test('product pulls forward and returns on release, cancel and keyboard blur', async ({ page }) => {
+  await page.goto('/#store=demo&floor=1f&product=p1');
+  const handle = page.locator('.pull-product-handle');
+  await expect(handle).toBeVisible();
+  await handle.scrollIntoViewIfNeeded();
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 150);
+  await expect(handle).toHaveCSS('--pull', '1');
+  await page.mouse.up();
+  await expect(handle).toHaveCSS('--pull', '0');
+  await handle.focus();
+  await page.keyboard.down('Space');
+  await expect(handle).toHaveCSS('--pull', '1');
+  await page.keyboard.up('Space');
+  await expect(handle).toHaveCSS('--pull', '0');
+  await page.keyboard.down('Enter');
+  await page.keyboard.press('Tab');
+  await expect(handle).toHaveCSS('--pull', '0');
+  await page.keyboard.up('Enter');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await expect(handle).toHaveClass(/pulling/);
+  await handle.dispatchEvent('pointercancel', { pointerId: 1 });
+  await expect(handle).not.toHaveClass(/pulling/);
+  await page.mouse.up();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await handle.focus();
+  await page.keyboard.down('Space');
+  await expect(handle.locator('.pull-product-object')).toHaveCSS('transform', 'none');
+  await page.keyboard.up('Space');
+});
+
 async function logIn(page: import('@playwright/test').Page) {
   const user = { id: '00000000-0000-4000-8000-000000000001', email: 'admin-test@example.invalid', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() };
   const token = [Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url'), Buffer.from(JSON.stringify({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 3600, role: 'authenticated', aud: 'authenticated' })).toString('base64url'), 'demo-signature'].join('.');
