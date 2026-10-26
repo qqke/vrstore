@@ -119,6 +119,10 @@ GitHub Pages 对商业业务 / SaaS 及敏感交易有限制，正式商业运�
 
 ### 私有快照及独立图片备份
 
+批量修改前可运行 `node --env-file=.env.local scripts/backup-before-change.mjs`。先在本机配置 PostgreSQL 的 `PGHOST`、`PGUSER`、`PGDATABASE`、`PGSSLMODE=require`，通过本机密码文件认证；不要把密码或连接字符串贴入命令、聊天或仓库。`PSQL_BIN` 可指定已安装的 psql 完整路径。命令仅接受 vrstore 项目连接，在同一只读事务取得应用表快照和完整 Storage 清单，复用图片下载校验，写入新的 `.backups/before-change-时间戳/`，不覆盖已有备份。
+
+只有目录中存在 `complete.json` 才表示整个命令完成；该文件记录数量和快照/清单哈希，图片清单另含逐文件哈希。失败目录保留供排查，不能作为完成凭据。执行期间停止其他维护人员修改数据和图片，确认完成后才批量修改；备份目录保持私有，并另复制到设备外。此命令不包含 Auth、角色或平台配置，不替代下述完整数据库备份及恢复演练。
+
 通过可信 SQL 连接运行 `supabase/backup-catalog.sql`，将结果保存为被 Git 忽略的 `.backups/catalog.json`，格式为 `{ "capturedAt": "实际时间", "tables": { ...SQL 返回的 snapshot... } }`。大范围修改前另存带时间戳副本，保留原快照。此快照不包含 Auth 密码，不能代替平台级完整备份。
 
 Storage 必须另外通过可信 SQL 连接运行 `supabase/backup-storage-index.sql` 取得完整对象清单，保存返回的 inventory 为 `.backups/storage-inventory.json`。不要用匿名 Storage 列表推断整个桶为空。然后运行：
