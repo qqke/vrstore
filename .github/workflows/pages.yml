@@ -34,7 +34,11 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: node scripts/verify-restore.mjs --demo
-      - run: npx playwright install --with-deps chromium
+      - name: Install browser and system dependencies
+        timeout-minutes: 10
+        run: |
+          echo 'Acquire::http::Timeout "30"; Acquire::https::Timeout "30"; Acquire::Retries "2";' | sudo tee /etc/apt/apt.conf.d/80-vrstore-network
+          npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
